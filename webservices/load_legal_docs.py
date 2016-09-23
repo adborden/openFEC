@@ -347,13 +347,14 @@ def get_citations(data):
     regulations = []
 
     for citation_text in citation_texts:
-        us_code_match = re.match("(?P<title>[0-9]+) U\.S\.C\. (?P<section>[0-9]+)", citation_text)
+        us_code_match = re.match("(?P<title>[0-9]+) U\.S\.C\. (?P<paragraph>[0-9a-z-]+)", citation_text)
         regulation_match = re.match("(?P<title>[0-9]+) C\.F\.R\. (?P<part>[0-9]+)(?:\.(?P<section>[0-9]+))?", citation_text)
 
         if us_code_match:
+            title, section = map_pre2012_citation(us_code_match.group('title'), us_code_match.group('paragraph'))
             url = 'http://api.fdsys.gov/link?' +\
-                  urlencode([('collection', 'uscode'), ('title', us_code_match.group('title')),
-                    ('year', 'mostrecent'), ('section', us_code_match.group('section'))])
+                  urlencode([('collection', 'uscode'), ('title', title),
+                    ('year', 'mostrecent'), ('section', section)])
             us_codes.append({"text": citation_text, "url": url})
         if regulation_match:
             url = 'http://api.fdsys.gov/link?' +\
@@ -367,6 +368,14 @@ def get_citations(data):
             print(citation_text)
             raise Exception("Could not parse citation")
     return {"us_code": us_codes, "regulations": regulations}
+
+def map_pre2012_citation(title, paragraph):
+    """Archived MURs have citations referring to old USC Titles that were
+    remapped in 2012. We link to the current laws based on the original
+    citations."""
+
+    return title, paragraph
+
 
 def delete_murs_from_s3():
     bucket = get_bucket()
